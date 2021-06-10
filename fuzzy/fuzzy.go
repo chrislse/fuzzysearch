@@ -4,6 +4,7 @@ package fuzzy
 
 import (
 	"bytes"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -198,7 +199,12 @@ func rankFind(source string, targets []string, transformer transform.Transformer
 
 	for index, target := range targets {
 		if match(source, target, transformer) {
-			distance := LevenshteinDistance(source, target)
+			var distance int
+			if strings.Contains(target, source) {
+				distance = 0
+			} else {
+				distance = LevenshteinDistance(source, target)
+			}
 			r = append(r, Rank{source, target, distance, index})
 		}
 	}
