@@ -4,7 +4,6 @@ package fuzzy
 
 import (
 	"bytes"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -79,6 +78,36 @@ Outer:
 	}
 
 	return true
+}
+
+func matchWithDistance(source, target string, transformer transform.Transformer) (bool, int) {
+	distance := 0
+	source = stringTransform(source, transformer)
+	target = stringTransform(target, transformer)
+
+	lenDiff := len(target) - len(source)
+
+	if lenDiff < 0 {
+		return false, distance
+	}
+
+	if lenDiff == 0 && source == target {
+		return true, distance
+	}
+
+Outer:
+	for _, r1 := range source {
+		for i, r2 := range target {
+			if r1 == r2 {
+				target = target[i+utf8.RuneLen(r2):]
+				continue Outer
+			}
+			distance++
+		}
+		return false, distance
+	}
+
+	return true, distance
 }
 
 // Find will return a list of strings in targets that fuzzy matches source.
@@ -198,10 +227,10 @@ func rankFind(source string, targets []string, transformer transform.Transformer
 	var r Ranks
 
 	for index, target := range targets {
-		if match(source, target, transformer) {
+		if m, d := matchWithDistance(source, target, transformer); m {
 			var distance int
-			if strings.Contains(target, source) {
-				distance = 0
+			if d == 0 {
+				distance = d
 			} else {
 				distance = LevenshteinDistance(source, target)
 			}
